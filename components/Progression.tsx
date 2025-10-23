@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Workout } from '../types';
 import { ALL_EXERCISES } from '../constants';
@@ -10,14 +9,16 @@ interface ProgressionProps {
 }
 
 const Progression: React.FC<ProgressionProps> = ({ workouts }) => {
-  const [selectedExercise, setSelectedExercise] = useState<string>(ALL_EXERCISES[0]);
+  const [selectedExercise, setSelectedExercise] = useState<string>(ALL_EXERCISES[0] || '');
 
   const progressionData = useMemo(() => {
     if (!selectedExercise) return [];
     
     const data: {date: string; maxWeight: number; volume: number}[] = [];
 
-    workouts.forEach(workout => {
+    const sortedWorkouts = [...workouts].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    sortedWorkouts.forEach(workout => {
         const exercise = workout.exercises.find(ex => ex.name === selectedExercise);
         if (exercise && exercise.sets.length > 0) {
             const maxWeight = Math.max(...exercise.sets.map(s => s.weight));
@@ -30,12 +31,12 @@ const Progression: React.FC<ProgressionProps> = ({ workouts }) => {
         }
     });
 
-    return data.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return data;
   }, [selectedExercise, workouts]);
   
   return (
     <div className="p-4 md:p-6">
-      <h1 className="text-3xl font-bold mb-6 text-cyan-400">Progresja</h1>
+      <h1 className="text-3xl font-bold mb-6 text-teal-400">Progresja</h1>
 
       <div className="mb-6">
         <label htmlFor="exercise-select" className="block text-sm font-medium text-gray-400 mb-1">Wybierz ćwiczenie</label>
@@ -43,14 +44,17 @@ const Progression: React.FC<ProgressionProps> = ({ workouts }) => {
           id="exercise-select"
           value={selectedExercise}
           onChange={(e) => setSelectedExercise(e.target.value)}
-          className="w-full md:w-1/2 bg-gray-700 border border-gray-600 rounded-md p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"
+          className="w-full md:w-1/2 bg-gray-700 border border-gray-600 rounded-md p-2 text-white focus:ring-teal-500 focus:border-teal-500"
         >
           {ALL_EXERCISES.map(ex => <option key={ex} value={ex}>{ex}</option>)}
         </select>
       </div>
       
       {progressionData.length < 2 ? (
-          <p className="text-gray-400">Za mało danych do wyświetlenia progresji. Wykonaj przynajmniej dwa treningi z tym ćwiczeniem.</p>
+          <div className="text-center bg-gray-800 p-8 rounded-lg">
+            <p className="text-gray-400">Za mało danych do wyświetlenia progresji.</p>
+            <p className="text-gray-500 text-sm mt-2">Wykonaj przynajmniej dwa treningi z wybranym ćwiczeniem, aby zobaczyć wykresy.</p>
+          </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-gray-800 p-4 rounded-lg shadow-md h-96">
@@ -75,7 +79,7 @@ const Progression: React.FC<ProgressionProps> = ({ workouts }) => {
                         <YAxis stroke="#A0AEC0" />
                         <Tooltip contentStyle={{ backgroundColor: '#2D3748', border: 'none' }} />
                         <Legend />
-                        <Line type="monotone" dataKey="volume" name="Objętość (kg)" stroke="#60a5fa" strokeWidth={2} />
+                        <Line type="monotone" dataKey="volume" name="Objętość (kg)" stroke="#818cf8" strokeWidth={2} />
                     </LineChart>
                 </ResponsiveContainer>
             </div>

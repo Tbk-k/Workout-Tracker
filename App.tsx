@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Page, Workout, WorkoutTemplate } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { WORKOUT_TEMPLATES } from './constants';
@@ -8,10 +7,17 @@ import History from './components/History';
 import Dashboard from './components/Dashboard';
 import Progression from './components/Progression';
 import Settings from './components/Settings';
+import Login from './components/Login';
 import { DumbbellIcon, BarChartIcon, HistoryIcon, SettingsIcon, TrendingUpIcon } from './components/Icons';
 
+const LogoutIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+    </svg>
+);
+
 const NavItem: React.FC<{ icon: React.ReactNode; label: string; isActive: boolean; onClick: () => void }> = ({ icon, label, isActive, onClick }) => (
-  <button onClick={onClick} className={`flex items-center w-full px-4 py-3 text-left transition-colors duration-200 ${isActive ? 'bg-cyan-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+  <button onClick={onClick} className={`flex items-center w-full px-4 py-3 text-left transition-colors duration-200 ${isActive ? 'bg-teal-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
     {icon}
     <span className="mx-4 font-medium">{label}</span>
   </button>
@@ -20,8 +26,23 @@ const NavItem: React.FC<{ icon: React.ReactNode; label: string; isActive: boolea
 export default function App() {
   const [page, setPage] = useState<Page>('Statystyki');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [workouts, setWorkouts] = useLocalStorage<Workout[]>('workouts', []);
-  const [templates, setTemplates] = useLocalStorage<WorkoutTemplate[]>('workout_templates', WORKOUT_TEMPLATES);
+  
+  const [currentUser, setCurrentUser] = useLocalStorage<string | null>('currentUser', null);
+  
+  const workoutKey = useMemo(() => currentUser ? `workouts_${currentUser}` : 'workouts', [currentUser]);
+  const templateKey = useMemo(() => currentUser ? `templates_${currentUser}` : 'workout_templates', [currentUser]);
+
+  const [workouts, setWorkouts] = useLocalStorage<Workout[]>(workoutKey, []);
+  const [templates, setTemplates] = useLocalStorage<WorkoutTemplate[]>(templateKey, WORKOUT_TEMPLATES);
+
+  const handleLogin = (username: string) => {
+    setCurrentUser(username);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setPage('Statystyki'); 
+  };
 
   const addWorkout = (workout: Workout) => {
     setWorkouts(prev => [...prev, workout]);
@@ -34,6 +55,10 @@ export default function App() {
   const saveTemplates = (newTemplates: WorkoutTemplate[]) => {
     setTemplates(newTemplates);
   };
+  
+  if (!currentUser) {
+    return <Login onLogin={handleLogin} />;
+  }
   
   const renderPage = () => {
     switch (page) {
@@ -68,12 +93,12 @@ export default function App() {
     <div className="flex h-screen bg-gray-900 text-gray-100">
        <div className={`fixed inset-0 z-20 bg-black bg-opacity-50 transition-opacity lg:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsSidebarOpen(false)}></div>
 
-      <aside className={`fixed top-0 left-0 z-30 h-full w-64 bg-gray-800 shadow-xl transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0`}>
+      <aside className={`fixed top-0 left-0 z-30 flex flex-col h-full w-64 bg-gray-800 shadow-xl transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0`}>
         <div className="flex items-center justify-center p-6 border-b border-gray-700">
-          <DumbbellIcon className="w-8 h-8 text-cyan-400" />
+          <DumbbellIcon className="w-8 h-8 text-teal-400" />
           <span className="ml-3 text-2xl font-semibold text-white">GymTracker</span>
         </div>
-        <nav className="mt-6">
+        <nav className="mt-6 flex-grow">
           {navItems.map(item => (
             <NavItem 
               key={item.page}
@@ -84,12 +109,18 @@ export default function App() {
             />
           ))}
         </nav>
+        <div className="p-4 border-t border-gray-700">
+            <button onClick={handleLogout} className="flex items-center w-full px-4 py-3 text-left text-gray-300 hover:bg-gray-700 rounded-md transition-colors duration-200">
+                <LogoutIcon className="w-6 h-6" />
+                <span className="mx-4 font-medium">Wyloguj</span>
+            </button>
+        </div>
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="flex justify-between items-center p-4 bg-gray-800 lg:hidden">
           <div className="flex items-center">
-            <DumbbellIcon className="w-6 h-6 text-cyan-400" />
+            <DumbbellIcon className="w-6 h-6 text-teal-400" />
             <span className="ml-2 text-xl font-semibold text-white">GymTracker</span>
           </div>
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-gray-300 focus:outline-none">

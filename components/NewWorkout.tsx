@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { WorkoutTemplate, Workout, LoggedExercise, Set as LoggedSet, Page } from '../types';
 import { PlusIcon, TrashIcon } from './Icons';
@@ -35,8 +34,10 @@ const NewWorkout: React.FC<NewWorkoutProps> = ({ templates, workouts, onSave, on
   }, [selectedTemplateName, templates]);
 
   useEffect(() => {
-    startWorkout();
-  }, [startWorkout]);
+    if(selectedTemplateName) {
+        startWorkout();
+    }
+  }, [selectedTemplateName, startWorkout]);
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (currentWorkout) {
@@ -130,7 +131,7 @@ const NewWorkout: React.FC<NewWorkoutProps> = ({ templates, workouts, onSave, on
 
   return (
     <div className="p-4 md:p-6">
-      <h1 className="text-3xl font-bold mb-6 text-cyan-400">Nowy Trening</h1>
+      <h1 className="text-3xl font-bold mb-6 text-teal-400">Nowy Trening</h1>
 
       <div className="mb-6 flex flex-col md:flex-row md:items-center gap-4">
         <div className="flex-1">
@@ -139,7 +140,7 @@ const NewWorkout: React.FC<NewWorkoutProps> = ({ templates, workouts, onSave, on
             id="workout-template"
             value={selectedTemplateName}
             onChange={handleTemplateChange}
-            className="w-full bg-gray-700 border border-gray-600 rounded-md p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"
+            className="w-full bg-gray-700 border border-gray-600 rounded-md p-2 text-white focus:ring-teal-500 focus:border-teal-500"
           >
             {templates.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
           </select>
@@ -152,7 +153,7 @@ const NewWorkout: React.FC<NewWorkoutProps> = ({ templates, workouts, onSave, on
                     id="workout-date"
                     value={currentWorkout.date}
                     onChange={handleDateChange}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-md p-2 text-white focus:ring-cyan-500 focus:border-cyan-500"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-md p-2 text-white focus:ring-teal-500 focus:border-teal-500"
                 />
             </div>
         )}
@@ -190,13 +191,13 @@ const NewWorkout: React.FC<NewWorkoutProps> = ({ templates, workouts, onSave, on
                 ))}
               </div>
               
-              <button onClick={() => addSet(exercise.id)} className="mt-4 flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors">
+              <button onClick={() => addSet(exercise.id)} className="mt-4 flex items-center gap-2 text-teal-400 hover:text-teal-300 transition-colors">
                 <PlusIcon className="w-5 h-5"/>
                 Dodaj serię
               </button>
             </div>
           ))}
-          <button onClick={saveWorkout} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+          <button onClick={saveWorkout} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-lg transition-colors">
             Zapisz Trening
           </button>
         </div>

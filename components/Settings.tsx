@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { WorkoutTemplate, ExerciseTemplate, MuscleGroup } from '../types';
 import { PlusIcon, TrashIcon } from './Icons';
@@ -8,32 +7,78 @@ interface SettingsProps {
   onSave: (templates: WorkoutTemplate[]) => void;
 }
 
+// Rozszerzone typy z tymczasowymi ID dla stabilnych kluczy w React
+interface EditableExerciseTemplate extends ExerciseTemplate {
+  _id: string;
+}
+interface EditableWorkoutTemplate {
+  _id: string;
+  name: string;
+  exercises: EditableExerciseTemplate[];
+}
+
 const Settings: React.FC<SettingsProps> = ({ templates, onSave }) => {
-  const [editableTemplates, setEditableTemplates] = useState<WorkoutTemplate[]>(JSON.parse(JSON.stringify(templates)));
+  
+  const [editableTemplates, setEditableTemplates] = useState<EditableWorkoutTemplate[]>(() => 
+    JSON.parse(JSON.stringify(templates)).map((template: WorkoutTemplate) => ({
+      ...template,
+      _id: `t-${Math.random().toString(36).substr(2, 9)}`,
+      exercises: template.exercises.map((exercise: ExerciseTemplate) => ({
+        ...exercise,
+        _id: `ex-${Math.random().toString(36).substr(2, 9)}`,
+      })),
+    }))
+  );
+  
   const [newTemplateName, setNewTemplateName] = useState('');
 
-  const handleTemplateNameChange = (index: number, newName: string) => {
-    const updated = [...editableTemplates];
-    updated[index].name = newName;
-    setEditableTemplates(updated);
+  const handleTemplateNameChange = (templateId: string, newName: string) => {
+    setEditableTemplates(current =>
+      current.map(t => (t._id === templateId ? { ...t, name: newName } : t))
+    );
   };
 
-  const handleExerciseChange = (templateIndex: number, exerciseIndex: number, field: 'name' | 'muscleGroup', value: string) => {
-    const updated = [...editableTemplates];
-    (updated[templateIndex].exercises[exerciseIndex] as any)[field] = value;
-    setEditableTemplates(updated);
+  const handleExerciseChange = (templateId: string, exerciseId: string, field: 'name' | 'muscleGroup', value: string) => {
+    setEditableTemplates(current =>
+      current.map(t => {
+        if (t._id === templateId) {
+          return {
+            ...t,
+            exercises: t.exercises.map(ex =>
+              ex._id === exerciseId ? { ...ex, [field]: value } : ex
+            ),
+          };
+        }
+        return t;
+      })
+    );
   };
 
-  const addExercise = (templateIndex: number) => {
-    const updated = [...editableTemplates];
-    updated[templateIndex].exercises.push({ name: '', muscleGroup: MuscleGroup.Chest });
-    setEditableTemplates(updated);
+  const addExercise = (templateId: string) => {
+    setEditableTemplates(current =>
+      current.map(t => {
+        if (t._id === templateId) {
+          const newExercise: EditableExerciseTemplate = {
+            _id: `ex-${Math.random().toString(36).substr(2, 9)}`,
+            name: '',
+            muscleGroup: MuscleGroup.Chest,
+          };
+          return { ...t, exercises: [...t.exercises, newExercise] };
+        }
+        return t;
+      })
+    );
   };
   
-  const removeExercise = (templateIndex: number, exerciseIndex: number) => {
-    const updated = [...editableTemplates];
-    updated[templateIndex].exercises.splice(exerciseIndex, 1);
-    setEditableTemplates(updated);
+  const removeExercise = (templateId: string, exerciseId: string) => {
+    setEditableTemplates(current =>
+      current.map(t => {
+        if (t._id === templateId) {
+          return { ...t, exercises: t.exercises.filter(ex => ex._id !== exerciseId) };
+        }
+        return t;
+      })
+    );
   };
 
   const addTemplate = () => {
@@ -41,66 +86,77 @@ const Settings: React.FC<SettingsProps> = ({ templates, onSave }) => {
         alert('Nazwa planu nie może być pusta.');
         return;
     }
-    setEditableTemplates([...editableTemplates, { name: newTemplateName, exercises: [] }]);
+    const newTemplate: EditableWorkoutTemplate = {
+      _id: `t-${Math.random().toString(36).substr(2, 9)}`,
+      name: newTemplateName.trim(),
+      exercises: [],
+    };
+    setEditableTemplates(current => [...current, newTemplate]);
     setNewTemplateName('');
   };
 
-  const removeTemplate = (templateIndex: number) => {
+  const removeTemplate = (templateId: string) => {
     if (window.confirm('Czy na pewno chcesz usunąć ten plan treningowy?')) {
-        const updated = [...editableTemplates];
-        updated.splice(templateIndex, 1);
-        setEditableTemplates(updated);
+        setEditableTemplates(current => current.filter(t => t._id !== templateId));
     }
   };
 
   const saveChanges = () => {
-    onSave(editableTemplates);
+    // Usuń tymczasowe _id przed zapisem
+    const cleanedTemplates = editableTemplates.map(t => {
+        const { _id, exercises, ...rest } = t;
+        return {
+            ...rest,
+            exercises: exercises.map(({ _id, ...exRest }) => exRest)
+        };
+    });
+    onSave(cleanedTemplates);
     alert('Zmiany zapisane!');
   };
 
   return (
     <div className="p-4 md:p-6">
-      <h1 className="text-3xl font-bold mb-6 text-cyan-400">Ustawienia Planów Treningowych</h1>
+      <h1 className="text-3xl font-bold mb-6 text-teal-400">Ustawienia Planów Treningowych</h1>
 
       <div className="space-y-6">
-        {editableTemplates.map((template, tIndex) => (
-          <div key={tIndex} className="bg-gray-800 p-4 rounded-lg shadow-md">
+        {editableTemplates.map(template => (
+          <div key={template._id} className="bg-gray-800 p-4 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-4">
                 <input 
                     type="text"
                     value={template.name}
-                    onChange={(e) => handleTemplateNameChange(tIndex, e.target.value)}
-                    className="text-xl font-semibold bg-transparent border-b-2 border-gray-600 focus:border-cyan-500 outline-none text-white"
+                    onChange={(e) => handleTemplateNameChange(template._id, e.target.value)}
+                    className="flex-grow mr-4 text-xl font-semibold bg-transparent border-b-2 border-gray-600 focus:border-teal-500 outline-none text-white"
                 />
-                <button onClick={() => removeTemplate(tIndex)} className="text-red-500 hover:text-red-400">
+                <button onClick={() => removeTemplate(template._id)} className="flex-shrink-0 text-red-500 hover:text-red-400 p-2" aria-label="Usuń plan treningowy">
                     <TrashIcon />
                 </button>
             </div>
             
             <div className="space-y-2">
-              {template.exercises.map((ex, eIndex) => (
-                <div key={eIndex} className="flex items-center gap-2">
+              {template.exercises.map(ex => (
+                <div key={ex._id} className="flex items-center gap-2">
                   <input 
                     type="text"
                     placeholder="Nazwa ćwiczenia"
                     value={ex.name}
-                    onChange={(e) => handleExerciseChange(tIndex, eIndex, 'name', e.target.value)}
-                    className="flex-grow bg-gray-700 rounded-md p-2"
+                    onChange={(e) => handleExerciseChange(template._id, ex._id, 'name', e.target.value)}
+                    className="flex-grow bg-gray-700 rounded-md p-2 text-white"
                   />
                   <select
                     value={ex.muscleGroup}
-                    onChange={(e) => handleExerciseChange(tIndex, eIndex, 'muscleGroup', e.target.value)}
-                    className="bg-gray-700 rounded-md p-2"
+                    onChange={(e) => handleExerciseChange(template._id, ex._id, 'muscleGroup', e.target.value)}
+                    className="bg-gray-700 rounded-md p-2 text-white"
                   >
                     {Object.values(MuscleGroup).map(mg => <option key={mg} value={mg}>{mg}</option>)}
                   </select>
-                  <button onClick={() => removeExercise(tIndex, eIndex)} className="text-red-500 hover:text-red-400 p-2">
+                  <button onClick={() => removeExercise(template._id, ex._id)} className="text-red-500 hover:text-red-400 p-2" aria-label="Usuń ćwiczenie">
                     <TrashIcon className="w-5 h-5"/>
                   </button>
                 </div>
               ))}
             </div>
-            <button onClick={() => addExercise(tIndex)} className="mt-4 flex items-center gap-2 text-cyan-400 hover:text-cyan-300">
+            <button onClick={() => addExercise(template._id)} className="mt-4 flex items-center gap-2 text-teal-400 hover:text-teal-300">
               <PlusIcon className="w-5 h-5"/> Dodaj ćwiczenie
             </button>
           </div>
@@ -114,9 +170,10 @@ const Settings: React.FC<SettingsProps> = ({ templates, onSave }) => {
                     placeholder="Nazwa nowego planu"
                     value={newTemplateName}
                     onChange={(e) => setNewTemplateName(e.target.value)}
-                    className="flex-grow bg-gray-700 rounded-md p-2"
+                    onKeyPress={(e) => e.key === 'Enter' && addTemplate()}
+                    className="flex-grow bg-gray-700 rounded-md p-2 text-white"
                 />
-                <button onClick={addTemplate} className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg">
+                <button onClick={addTemplate} className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg">
                     Dodaj
                 </button>
             </div>
