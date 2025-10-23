@@ -1,0 +1,5 @@
+{
+  "name": " Gym Workout Tracker",
+  "description": "A comprehensive web application to track gym training progress, log workouts, and visualize performance metrics over time. Built with React and Tailwind CSS.",
+  "requestFramePermissions": []
+}
